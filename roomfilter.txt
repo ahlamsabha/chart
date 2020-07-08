@@ -1,0 +1,315 @@
+import React, { Component } from 'react'
+import * as am4core from "@amcharts/amcharts4/core";
+import * as am4charts from "@amcharts/amcharts4/charts";
+import am4themes_animated from "@amcharts/amcharts4/themes/animated";
+import {
+  Badge,
+  Button,
+  ButtonDropdown,
+  ButtonGroup,
+  ButtonToolbar,
+  Card,
+  CardBody,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+  Col,
+  Dropdown,
+  DropdownItem,
+  DropdownMenu,
+  DropdownToggle,
+  Progress,
+  Row,
+  Table,
+  Label, Input
+} from 'reactstrap';
+import SalesData from './SalesData';
+import axios from 'axios';
+import { parseJSON } from 'jquery';
+export default class PerRoom extends Component {
+  state = {
+    LStRooms:[],
+    Lstroom:null,
+    data: {
+      datasets:
+      {
+        "Room": [],
+        "count": []
+      },
+      datasource: [],
+    },
+    Rooms:[{
+      "id":5,
+      "Room": "roomname",
+  }]
+  }
+  componentDidMount() {
+    var labels = [];
+    var data = [];
+    axios.post("https://localhost:44343/api/Reserved/SearchOperationReservationModel", {})
+    //https://localhost:44343/api/Reserved/SearchOperationReservationModel
+      .then((res) => {
+        console.log(res.data);
+debugger
+        for (var propertyName in res.data.reservationStatistics) {
+          // console.log("index ", propertyName);
+          // console.log("count ", res.data.typeStatistics[propertyName]);
+          labels.push(propertyName);
+          data.push(res.data.reservationStatistics[propertyName]);
+        }
+        console.log("labels ", labels)
+        console.log("data ", data)
+        var datasource = [];
+        for (var idx in data) {
+          datasource.push({ "room": labels[idx], "count": data[idx] });
+        }
+        console.log("MAP ", datasource);
+        // Add data
+        am4core.useTheme(am4themes_animated);
+        // Themes end
+        let chart = am4core.create("RoomChart", am4charts.XYChart);
+        chart.data = datasource;
+        let categoryAxis = chart.xAxes.push(new am4charts.CategoryAxis());
+        categoryAxis.renderer.grid.template.location = 0;
+        categoryAxis.renderer.ticks.template.disabled = true;
+        categoryAxis.renderer.line.opacity = 0;
+        categoryAxis.renderer.grid.template.disabled = true;
+        categoryAxis.renderer.minGridDistance = 40;
+        categoryAxis.dataFields.category = "room";
+        categoryAxis.startLocation = 0.4;
+        categoryAxis.endLocation = 0.6;
+        let valueAxis = chart.yAxes.push(new am4charts.ValueAxis());
+        valueAxis.tooltip.disabled = true;
+        valueAxis.renderer.line.opacity = 0;
+        valueAxis.renderer.ticks.template.disabled = true;
+        valueAxis.min = 0;
+        let lineSeries = chart.series.push(new am4charts.LineSeries());
+        lineSeries.dataFields.categoryX = "room";
+        lineSeries.dataFields.valueY = "count";
+        lineSeries.tooltipText = "Count: {valueY.value}";
+        lineSeries.name = "Count"
+        lineSeries.strokeWidth = 2;
+        lineSeries.minBulletDistance = 10;
+        let bullet = lineSeries.bullets.push(new am4charts.CircleBullet());
+        // bullet.circle.radius = 6;
+        bullet.circle.fill = am4core.color("#fff");
+        // bullet.circle.strokeWidth = 3;
+        chart.cursor = new am4charts.XYCursor();
+        chart.cursor.behavior = "panX";
+        chart.cursor.lineX.opacity = 0;
+        chart.cursor.lineY.opacity = 0;
+        chart.scrollbarX = new am4charts.XYChartScrollbar();
+        // chart.scrollbarX.series.push(series1);
+        chart.scrollbarX.series.push(lineSeries);
+        chart.scrollbarX.parent = chart.bottomAxesContainer;
+        // min: Math.min.apply(Math, this.state.LStRooms[0].data) - 5;
+        // max: Math.max.apply(Math, this.state.LStRooms[0].data) + 5;
+        chart.legend = new am4charts.Legend();
+        chart.legend.position = "top";
+        let title = chart.titles.create();
+        title.text = "Reservations Count";
+        title.fontSize = 20;
+        title.marginBottom = 30;
+        title.color= "#fff";
+// debugger;
+//         document.getElementById('idd').addEventListener('change', function(e) {
+//           lineSeries.dataFields.valueY = e.target.value.count;
+//           lineSeries.dataFields.categoryX = e.target.value.roomname;
+//           chart.invalidateData();
+//         });
+        this.chart = chart;
+      })
+      var roomname = [];
+      var id = [];
+      var date=[];
+      axios.post("https://localhost:44343/api/Reserved/SearchRoomReservationsModel",{}).then(res=>{
+        console.log(data.res)
+        console.log(data.data);
+        this.setState({
+          LStRooms:res.data
+        })
+        for (var row in res.data){
+          var line = res.data[row]
+          roomname.push(line.roomName);
+          id.push(line.id);
+          date.push(line.fromDate);
+          }
+    })
+    console.log ("id", id);
+    console.log ("Room", roomname);
+    console.log ("dateeeeee", date);
+  }
+  // ChangeValue=(event,deName) =>{
+  //   const name= event.target.name
+  //   let value=[]
+  //   value=parseJSON(event.target.value);
+  //   //  console.log("roomname ",Lstroom.roomName," value ",Lstroom.id);
+  //   this.setState({
+  //   name:value
+  //   })
+  // }
+  generateChartData() {
+    let chartData = [];
+    let fromDate = new Date();
+    fromDate.setDate(fromDate.getDate() - 1000);
+    let visits = 1200;
+    for (var i = 0; i < 500; i++) {
+        // we create date objects here. In your data, you can have date strings
+        // and then set format of your dates using chart.dataDateFormat property,
+        // however when possible, use date objects, as this will speed up chart rendering.
+        let newDate = new Date(fromDate);
+        newDate.setDate(newDate.getDate() + i);
+        visits += Math.round((Math.random()<0.5?1:-1)*Math.random()*10);
+        chartData.push({
+            date: newDate,
+            visits: visits
+        });
+      }
+      return chartData;
+}
+componentWillUnmount() {
+  if (this.chart) {
+    this.chart.dispose();
+  }
+}
+Change(event) {
+  // if (this.chart.Id = "RoomChart"){
+  //   this.chart.dispose();
+  // }
+  debugger
+  var RoomId=event.target.value
+  var Room
+  var Count
+  for(var x in this.state.LStRooms){
+    console.log("id ",this.state.LStRooms[x].id)
+   if(this.state.LStRooms[x].id==RoomId){
+     Room=this.state.LStRooms[x].roomName
+     Count=this.state.LStRooms[x].count
+    break
+   }
+  }
+  console.log("RoomName ",Room)
+  console.log("RoomCount ",Count)
+  var labels = [];
+    var data = [];
+   var date= [];
+    axios.post("https://localhost:44343/api/Reserved/SearchOperationReservationModel", {})
+    //https://localhost:44343/api/Reserved/SearchOperationReservationModel
+      .then((res) => {
+        console.log(res.data);
+        for (var propertyName in res.data.reservationStatistics) {
+          // console.log("index ", propertyName);
+          // console.log("count ", res.data.typeStatistics[propertyName]);
+          labels.push(propertyName);
+          data.push(res.data.reservationStatistics[propertyName]);
+          date.push(res.data.fromDate);
+        }
+        console.log("labels ", labels)
+        console.log("data ", data)
+        console.log("date", date)
+        var datasource = [];
+        // for (var idx in data) {
+        //   datasource.push({ "room": this.state.LStRooms[0].roomName, "count": this.state.LStRooms[0].count });
+        // }
+        for(var y in this.state.LStRooms){
+          console.log("id ",this.state.LStRooms[y].id)
+         if(this.state.LStRooms[y].id==RoomId){
+          datasource.push({ "room": this.state.LStRooms[y].roomName, "count": this.state.LStRooms[y].count });
+          break
+         }
+        }
+        console.log("MAP ", datasource);
+        this.chart.data=datasource;
+        //this.chart = chart;
+      })
+}
+onRadioBtnClick(Par){
+  var labels = [];
+    var data = [];
+   var date= [];
+    axios.post("https://localhost:44343/api/Reserved/SearchOperationReservationModel?Case=" & par , {})
+    //https://localhost:44343/api/Reserved/SearchOperationReservationModel
+      .then((res) => {
+        console.log(res.data);
+        for (var propertyName in res.data.reservationStatistics) {
+          // console.log("index ", propertyName);
+          // console.log("count ", res.data.typeStatistics[propertyName]);
+          labels.push(propertyName);
+          data.push(res.data.reservationStatistics[propertyName]);
+          date.push(res.data.fromDate);
+        }
+        console.log("labels ", labels)
+        console.log("data ", data)
+        console.log("date", date)
+        var datasource = [];
+        // for (var idx in data) {
+        //   datasource.push({ "room": this.state.LStRooms[0].roomName, "count": this.state.LStRooms[0].count });
+        // }
+        for(var y in this.state.LStRooms){
+          console.log("id ",this.state.LStRooms[y].id)
+         if(this.state.LStRooms[y].id==RoomId){
+          datasource.push({ "room": this.state.LStRooms[y].roomName, "count": this.state.LStRooms[y].count });
+          break
+         }
+        }
+        console.log("MAP ", datasource);
+        this.chart.data=datasource;
+        //this.chart = chart;
+      })
+}
+  render() {
+    return (
+      <div>
+      <Row>
+        <Col>
+      {/* <div class="form-check-inline">
+      <input class="form-check-input" type="radio" name="exampleRadios" id="exampleRadios1" value="option1" checked/>
+      <label class="form-check-label" for="exampleRadios1">
+           Day
+      </label>
+      </div >
+    <div class="form-check-inline">
+    <input class="form-check-input" type="radio" name="exampleRadios" id="exampleRadios2" value="option2"/>
+    <label class="form-check-label" for="exampleRadios2">
+       Month
+   </label>
+    </div>
+    <div class="form-check-inline">
+    <input class="form-check-input" type="radio" name="exampleRadios" id="exampleRadios3" value="option3"/>
+    <label class="form-check-label" for="exampleRadios3">
+       Year
+   </label>
+    </div> */}
+    </Col>
+    <Col sm="7" className="d-none d-sm-inline-block">
+                    <ButtonToolbar className="float-right" aria-label="Toolbar with button groups">
+                      <ButtonGroup className="mr-3" aria-label="First group">
+                        <Button color="outline-secondary" onClick={() => this.onRadioBtnClick(1)} active={this.state.radioSelected === 1}>Day</Button>
+                        <Button color="outline-secondary" onClick={() => this.onRadioBtnClick(2)} active={this.state.radioSelected === 2}>Month</Button>
+                        <Button color="outline-secondary" onClick={() => this.onRadioBtnClick(3)} active={this.state.radioSelected === 3}>Year</Button>
+                        <Button color="outline-secondary" onClick={() => this.onRadioBtnClick(4)} active={this.state.radioSelected === 4}>All</Button>
+                      </ButtonGroup>
+                    </ButtonToolbar>
+                  </Col>
+    <Col></Col>
+    <Col></Col>
+    <Col></Col>
+    <Col md="3" sm="12">
+                    <Label>Select Room</Label>
+                    <Input type="select" name="Room" onChange={e => this.Change(e)} id="Room">
+                    <option key={-1} value={-1} className="dropdown-item"> </option>
+                    {this.state.LStRooms.map((Lstroom, index) => (
+                       <option key={index} value={Lstroom.id} className="dropdown-item"> {Lstroom.roomName}</option>
+                    ))}
+                    </Input>
+                  </Col>
+    </Row>
+    <Row>
+    <Col>
+      <div id="RoomChart" style={{ width: "100%", height: "500px" }}></div>
+      </Col>
+      </Row>
+    </div>
+    )
+  }
+}
